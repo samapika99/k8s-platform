@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_GITHUB_USER/edgeops-onprem-devops-platform.git
+    repoURL: https://github.com/samapika99/edgeops-onprem-devops-platform.git
     targetRevision: main
     path: helm/edgeops
   destination:
