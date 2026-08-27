@@ -1,0 +1,3 @@
+kubernetes==33.1.0
+requests==2.32.4
+prometheus-client==0.22.1

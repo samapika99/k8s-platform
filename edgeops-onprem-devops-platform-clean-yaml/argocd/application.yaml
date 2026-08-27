@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: edgeops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_GITHUB_USER/edgeops-onprem-devops-platform.git
+    targetRevision: main
+    path: helm/edgeops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: edgeops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

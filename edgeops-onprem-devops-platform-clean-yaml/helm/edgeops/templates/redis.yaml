@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgeops-redis
+  namespace: edgeops
+  labels:
+    app: edgeops-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edgeops-redis
+  template:
+    metadata:
+      labels:
+        app: edgeops-redis
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgeops-redis
+  namespace: edgeops
+spec:
+  selector:
+    app: edgeops-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP

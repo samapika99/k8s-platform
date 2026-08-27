@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edgeops-agent
+  namespace: edgeops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edgeops-agent
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - pods
+      - persistentvolumeclaims
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edgeops-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edgeops-agent
+subjects:
+  - kind: ServiceAccount
+    name: edgeops-agent
+    namespace: edgeops
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgeops-agent
+  namespace: edgeops
+  labels:
+    app: edgeops-agent
+spec:
+  replicas: {{ .Values.agent.replicas }}
+  selector:
+    matchLabels:
+      app: edgeops-agent
+  template:
+    metadata:
+      labels:
+        app: edgeops-agent
+    spec:
+      serviceAccountName: edgeops-agent
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          env:
+            - name: EDGEOPS_API
+              value: http://edgeops-api:8000
+            - name: CLUSTER_NAME
+              value: single-node-microk8s
+            - name: COLLECT_INTERVAL
+              value: "30"
+          ports:
+            - name: metrics
+              containerPort: 8002
+              protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10003

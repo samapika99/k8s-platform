@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgeops-worker
+  namespace: edgeops
+  labels:
+    app: edgeops-worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: edgeops-worker
+  template:
+    metadata:
+      labels:
+        app: edgeops-worker
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          env:
+            - name: MONGO_URI
+              value: mongodb://edgeops-mongodb:27017
+            - name: MONGO_DB
+              value: edgeops
+            - name: KAFKA_BOOTSTRAP
+              value: edgeops-kafka:9092
+          ports:
+            - name: metrics
+              containerPort: 8001
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10002

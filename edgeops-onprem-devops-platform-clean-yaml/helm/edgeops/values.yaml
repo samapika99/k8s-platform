@@ -1,0 +1,52 @@
+api:
+  image:
+    repository: ghcr.io/samapika99/edgeops-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+worker:
+  image:
+    repository: ghcr.io/samapika99/edgeops-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+agent:
+  image:
+    repository: ghcr.io/samapika99/edgeops-agent
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+
+web:
+  image:
+    repository: ghcr.io/samapika99/edgeops-web
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 300m, memory: 256Mi}
+
+mongodb:
+  image: mongo:7
+  storage: 5Gi
+
+redis:
+  image: redis:7-alpine
+
+kafka:
+  image: apache/kafka:4.0.0
+  storage: 5Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: edgeops.local

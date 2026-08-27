@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgeops-web
+  namespace: edgeops
+  labels:
+    app: edgeops-web
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels:
+      app: edgeops-web
+  template:
+    metadata:
+      labels:
+        app: edgeops-web
+    spec:
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgeops-web
+  namespace: edgeops
+spec:
+  selector:
+    app: edgeops-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
