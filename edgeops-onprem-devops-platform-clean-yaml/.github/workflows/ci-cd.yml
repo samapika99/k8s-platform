@@ -46,7 +46,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: azure/setup-helm@v4
+      with:
+        version: v3.15.4
     - run: helm lint helm/edgeops
+    - run: helm template edgeops helm/edgeops > /tmp/rendered.yaml
+    - name: kubeconform validation
+      uses: docker://ghcr.io/yannh/kubeconform:latest
+      with:
+        args: -strict /tmp/rendered.yaml
 
   security:
     runs-on: ubuntu-latest
@@ -64,6 +71,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: security
     if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [api, worker, web, agent]
     steps:
     - uses: actions/checkout@v4
 
@@ -75,36 +85,23 @@ jobs:
 
     - uses: docker/build-push-action@v6
       with:
-        context: services/api
+        context: services/${{ matrix.service }}
         push: true
-        tags: ghcr.io/${{ github.repository_owner }}/edgeops-api:${{ github.sha }}
-
-    - uses: docker/build-push-action@v6
-      with:
-        context: services/worker
-        push: true
-        tags: ghcr.io/${{ github.repository_owner }}/edgeops-worker:${{ github.sha }}
-
-    - uses: docker/build-push-action@v6
-      with:
-        context: services/agent
-        push: true
-        tags: ghcr.io/${{ github.repository_owner }}/edgeops-agent:${{ github.sha }}
-
-    - uses: docker/build-push-action@v6
-      with:
-        context: services/web
-        push: true
-        tags: ghcr.io/${{ github.repository_owner }}/edgeops-web:${{ github.sha }}
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/edgeops-${{ matrix.service }}:${{ github.sha }}
+          ghcr.io/${{ github.repository_owner }}/edgeops-${{ matrix.service }}:latest
 
   image-scan:
     runs-on: ubuntu-latest
     needs: build-push
     if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [api, worker, web, agent]
     steps:
     - uses: aquasecurity/trivy-action@0.28.0
       with:
-        image-ref: ghcr.io/${{ github.repository_owner }}/edgeops-api:${{ github.sha }}
+        image-ref: ghcr.io/${{ github.repository_owner }}/edgeops-${{ matrix.service }}:${{ github.sha }}
         severity: HIGH,CRITICAL
         exit-code: "1"
 
@@ -114,12 +111,21 @@ jobs:
     if: github.event_name == 'push'
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: main
 
-    - name: Update GitOps image tags
+    - name: Set up yq
+      uses: mikefarah/yq@v4.44.3
+
+    - name: Bump image tags in values.yaml to this commit's SHA
       run: |
-        sed -i "s/tag: latest/tag: ${GITHUB_SHA}/g" helm/edgeops/values.yaml
-        git config user.name github-actions
-        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-        git add helm/edgeops/values.yaml
-        git commit -m "chore: promote ${GITHUB_SHA}" || true
-        git push
+        set -e
+        for svc in api worker web agent; do
+          yq -i ".${svc}.image.tag = \"${{ github.sha }}\"" helm/edgeops/values.yaml
+        done
+
+    - name: Commit and push updated manifests
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "chore: promote ${{ github.sha }}"
+        file_pattern: helm/edgeops/values.yaml
